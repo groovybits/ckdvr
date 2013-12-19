@@ -1,0 +1,124 @@
+#!/usr/bin/perl
+
+# Chris Kennedy, September 2003
+# KMOS-TV
+#
+# DECODER
+
+require '/opt/dvr/etc/global.cfg';
+
+$DECODEPORT = 0;
+$NOLOCK = 1;
+
+for($i = 0;$ARGV[$i] ne '';$i++) {
+  if($ARGV[$i] =~ /^-p/) {
+    $DECODEPORT = $ARGV[$i+1];
+    $i++;
+  } elsif($ARGV[$i] =~ /^-k/) {
+    $kill = 1;
+  } else {
+    if( -f "$STORAGE/$ARGV[$i]") {
+      #$now_playing = "$ARGV[$i]";
+      push(@now_playing, "$ARGV[$i]");
+    }
+  }
+}
+chomp($now_playing[$i]);
+
+# Setup Splicer Settings
+$SPLICER_CONTROL = $DVRPATH . "/lock/dec_fifo." . $DECODEPORT;
+$SPLICER_PID = $DVRPATH . "/lock/bb_lock." . $DECODEPORT;
+$SPLICER_PLAYLIST = $DVRPATH . "/lock/playlist." . $DECODEPORT;
+if ( ! -f "$SPLICER_PID") {
+  print "ERROR, no splicer control $SPLICER_CONTROL\n";
+  exit 1;
+}
+# Get PID of Splicer
+open(SFILE, "$SPLICER_PID");
+$control_pid = <SFILE>;
+close(SFILE);
+
+if($kill == 1) {
+  open(LOCK,"$DECODELOCK/$DECODEPORT");
+  $line = <LOCK>;
+  ($pid) = split(/:/, $line);
+  close(LOCK);
+  open(SPLAYLIST, ">$SPLICER_PLAYLIST");
+  close(SPLAYLIST);
+  kill HUP, $control_pid;
+  unlink($SPLICER_PLAYLIST); 
+  print "Took Port $DECODEPORT to NULL\n";
+  exit(0);
+}
+
+if($i == 0 || (! -f "$STORAGE/$now_playing[0]")) {
+  print "Usage: $0 [-p [0-4]] filename\n";
+  exit 0;
+}
+
+$TIMESTAMP = &time_stamp;
+
+# Lockfile
+if( -f "$DECODELOCK/$DECODEPORT" && $NOLOCK == 0) {
+  print "Locked\n";
+  exit 0;
+} else {
+  open(LOCK,">$DECODELOCK/$DECODEPORT");
+  close(LOCK);
+
+  # Get length and timestamp
+  $breakout = 0;
+  open(LIB,"$LIBRARY");
+  while($breakout == 0) {
+    $line = <LIB>;
+    if($line eq '') {
+      $breakout = 1;
+      next;
+    }
+    if ($line =~ /^$now_playing[0]:/) {
+      $title = $line;
+      $title =~ s/^$now_playing[0]://g;
+      $breakout = 1;
+    }
+  }
+  close(LIB);
+  chomp($title);
+  chomp($now_playing[0]);
+
+  open(LOCK,">$DECODELOCK/$DECODEPORT");
+  print LOCK "$$:$TIMESTAMP:$now_playing[0]:$title\n";
+  close(LOCK);
+  open(LOG,">>$DECODELOG");
+  print LOG "start: $TIMESTAMP:$DECODEPORT:$now_playing[0]:$title\n";
+  close(LOG);
+}
+
+# Load Playlist
+open(SPLAYLIST, ">$SPLICER_PLAYLIST");
+for($i=0;$now_playing[$i];$i++) {
+  $now_playing[$i] = $STORAGE . "/" . $now_playing[$i];
+  print SPLAYLIST "$now_playing[$i]\n";
+  print "Spliced: $now_playing[$i]\n";
+}
+close(SPLAYLIST);
+
+# Take Event
+kill HUP, $control_pid;
+#kill USR1, $control_pid;
+#$PLAYLIST_LOAD = "/opt/dvr/lock/playlist.$DECODEPORT.load";
+#open(PLAYLISTLOAD, ">$PLAYLIST_LOAD");
+#close(PLAYLISTLOAD);
+
+while(-f "$SPLICER_PLAYLIST"){
+  # Wait for Playback
+  sleep(1);
+}
+
+$TIMESTAMP = &time_stamp;
+
+# Lockfile
+unlink("$DECODELOCK/$DECODEPORT");
+open(LOG,">>$DECODELOG");
+print LOG "stop: $TIMESTAMP:$DECODEPORT\n";
+close(LOG);
+

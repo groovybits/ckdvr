@@ -1,0 +1,15 @@
+# Encoding Settings
+
+$in = "ntsc-composite";
+$vq = "2";
+$vm = "double-interpolate";
+$fmt = "MPEG";
+$vc = "MPEG-1";
+$ac = "MPEG-2";
+$vr = "one half";
+$asr = "44100";
+$abr = "128000";
+$vbr = "1536000";
+$bc = "Fix quality";
+
+1;

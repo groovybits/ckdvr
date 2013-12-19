@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Controller Interface
+/opt/dvr/sbin/interface &
+
+# Schedule Daemons
+/opt/dvr/sbin/enc_scheduled &
+/opt/dvr/sbin/dec_scheduled &
+
+

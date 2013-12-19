@@ -1,0 +1,28 @@
+head	1.1;
+access;
+symbols;
+locks
+	root:1.1; strict;
+comment	@# @;
+
+
+1.1
+date	2003.10.06.05.19.47;	author root;	state Exp;
+branches;
+next	;
+
+
+desc
+@Added stylesheet, major rework of all pages look.
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@<? 
+ echo "<link rel=\"stylesheet\" href=\"$stylesheet\">\n";
+?>
+@

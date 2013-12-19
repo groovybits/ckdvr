@@ -1,0 +1,20 @@
+#!/usr/bin/perl
+
+# Chris Kennedy
+# September 2003
+# KMOS-TV
+
+($file) = @ARGV;
+
+if ($file eq '') {
+  print "Usage: $0 file\n";
+  exit 0;
+}
+
+$newfile = $file . "1";
+
+$cmd = "/usr/bin/mencoder $file -oac pcm -ovc lavc -lavcopts vcodec=mpeg1video:vbitrate=1500 -o $newfile";
+
+print "$cmd\n";
+system("$cmd");
+

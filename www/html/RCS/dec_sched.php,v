@@ -1,0 +1,151 @@
+head	1.2;
+access;
+symbols;
+locks
+	root:1.2; strict;
+comment	@# @;
+
+
+1.2
+date	2003.10.16.03.50.05;	author root;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2003.10.14.03.36.50;	author root;	state Exp;
+branches;
+next	;
+
+
+desc
+@Added ability to ad d to the recording schedule
+@
+
+
+1.2
+log
+@got working for adding to playlist schedule
+@
+text
+@<? include 'variables.php' ?>
+<?
+// Todays Date
+$today = date("Y/m/d");
+$cur_date = date("H:i:s");
+
+if($clips != '') {
+  list ($file, $length, $title) = explode(":", $clips);
+}
+
+// Default to Port 0
+if ($port == '') 
+  $port = 0;
+
+// Record Date
+if($date != '') {
+  list($year, $month, $day) = explode("/", $date);
+} else {
+  $date = $today;
+}
+
+// Record Time
+if($minutes != '' && $minutes != "00:00:00") {
+  list($hour, $min, $sec) = explode(":",$minutes);
+} else if($minutes == '') {
+  $minutes = $cur_date;
+  #$minutes = "00:00:00";
+}
+
+// Calculate UNIX Timestamp
+$unix_tstart = mktime($hour, $min, $sec, $month, $day, $year);
+
+// Print Out After Entry Chosen
+if($title != '' && $file && $length != '' && $unix_tstart != '') {
+?>
+<table valign=top border=1 cellpadding=2 cellspacing=1 bgcolor=lightgrey>
+<tr><td align=left bgcolor=navy>
+<?
+  echo "&nbsp;<font color=white><strong>";
+  echo "$port Adding [$title] for $length Seconds...\n"; 
+  echo "</strong></font>&nbsp;";
+?>
+</td></tr>
+<tr><td align=center bgcolor=white>
+<? passthru("$DVRCMD aps $port $unix_tstart $length $file $title  ");?>
+</td></tr>
+</table>
+<br>
+<?
+  //exit(0);
+}
+
+?>
+
+<table border=1 cellpadding=2 cellspacing=1 bgcolor=lightgrey>
+<tr><td align=left valign=top colspan=3>
+<form action=playschedule.php method=post name=deccoder>
+<input type=hidden name=port value=<?echo $port?>>
+<input type=hidden name=myport value=<?echo $port?>>
+<strong>Date: </strong>
+<input type=text name="date" size=10 maxlength=10  value=<?echo $date?>>
+<strong>Time: </strong>
+<input type=text name="minutes" size=8 maxlength=8  value=<?echo $minutes?>>
+</th><td align=left valign=top colspan=1 bgcolor=lightgrey>
+<select name="clips" ONCHANGE=javascript:document.decoder.submit()>
+<option><?//echo $clips?>
+  <?
+    // list out Media Library
+    $lines = file ("$LIBRARY");
+    while (list($line_num, $line) = each ($lines)) {
+      list ($sfile, $length, $title)= explode (":", $line);
+      echo "<option>$sfile:$length:$title\n";
+    }
+  ?>
+</select>
+</td><td>
+<input type=submit value=Add name=submit>
+</form>
+</td></tr>
+
+</table>
+
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d1 1
+a1 1
+
+d7 4
+a32 8
+// Duration of recording
+if($duration != '' && $duration != "00:00:00") {
+  list($hour, $min, $sec) = explode(":",$duration);
+  $dur_seconds = ($hour * 3600) + ($min * 60) + $sec;
+} else if($duration == '') {
+  $duration = "00:00:00";
+}
+
+d34 1
+a34 1
+if($title != '' && $dur_seconds != '' && $unix_tstart != '') {
+d40 1
+a40 1
+  echo "$port Adding [$title] for $dur_seconds Seconds...\n"; 
+d45 1
+a45 1
+<? passthru("$DVRCMD ars $port $unix_tstart $dur_seconds $title 1>/dev/null & ");?>
+d57 1
+a57 1
+<form action=enc_sched.php method=post name=encoder>
+d64 13
+a76 4
+<strong>Title: </strong>
+<input type=text name="title" size=50 maxlength=50 value="<?echo $title?>">
+<strong>Duration: </strong>
+<input type=text name="duration" size=8 maxlength=8  value=<?echo $duration?>>
+@

@@ -1,0 +1,96 @@
+#!/usr/bin/perl
+# Author: Matthew M. Sekelsky
+# Date Last Modified: 11//22/2002
+#
+# get_day_seconds.pl: this file contains a perl sub_routine designed to 
+# mirror a watered down version of the mktime() function in the PHP    
+# function library. The function accepts six arguments: sec, min, hours, month, day 
+# and year, and calculates a unix timestamp for the date.
+#
+# Argument Notes: Months should be given 1-12, (-)28 - 28 ?, 4-Digit Year
+# Seconds 1-60, Minutes 1-60, Hours 0 - 23;
+
+($year, $month, $day, $hour, $min, $sec) = @ARGV;
+
+if("$year" eq '') {
+  print "Usage: $0 year month day hour min sec\n";
+  exit 1;
+}
+
+printf("%s\n", &mktime($sec,$min,$hour,$month,$day,$year));
+
+
+sub mktime {
+
+	use Time::Local;
+
+	# Taking in the arguments passed to get_day_seconds()
+
+	$p_month = $_[3];
+	$p_day = $_[4];
+	$p_year = $_[5];
+	$sec = $_[0];
+	$min = $_[1];
+	$hour = $_[2];
+
+	@monthdays = ('31','28','31','30','31','30','31','31','30','31','30','31');
+
+	if(($p_month == 1)||($p_month == 3)||($p_month == 5)||($p_month == 7)||($p_month == 8)||($p_month == 10)||($p_month == 12)) {
+
+		if($p_day > 31) {
+			$p_month += 1;
+			$p_day -= 31;
+			if($p_month == 12) {
+				$p_year += 1;
+			}
+		}
+		if($p_day <= 0) {
+			$p_month -= 1;
+			$p_day += 31;
+			if($p_month == 1) {
+				$p_year -= 1;
+			}
+		}
+
+	}
+	if(($p_month == 4)||($p_month == 6)||($p_month == 9)||($p_month == 11)) {
+
+		if($p_day > 30) {
+			$p_month += 1;
+			$p_day -= 30;
+		}
+		if($p_day <= 0) {
+			$p_month -=1;
+			$p_day += 30;
+		}
+
+	}
+	if($p_month == 2) {
+		if((($p_year%4==0)&&($p_year%100!=0))||($p_year%400==0)) {
+			if($p_day > 29) {
+				$p_month += 1;
+				$p_day -= 29;
+			}
+			if($p_day <= 0) {
+				$p_month -= 1;
+				$p_day += 29;
+			}
+		}
+		else {
+			if($p_day > 28) {
+				$p_month += 1;
+				$p_day -= 28;
+			}
+			if($p_day <= 0) {
+				$p_month -= 1;
+				$p_day += 28;
+			}
+		}
+	}
+
+	$seconds = timelocal($sec,$min,$hour,$p_day,$p_month-1,$p_year);
+
+	return $seconds;
+
+}
+

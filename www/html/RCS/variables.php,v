@@ -1,0 +1,231 @@
+head	1.9;
+access;
+symbols;
+locks
+	root:1.9; strict;
+comment	@# @;
+
+
+1.9
+date	2003.10.14.19.30.34;	author root;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2003.10.14.03.36.50;	author root;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2003.10.12.10.49.17;	author root;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2003.10.12.06.23.47;	author root;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2003.10.12.06.00.07;	author root;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2003.10.06.05.19.47;	author root;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2003.09.24.07.51.20;	author root;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2003.09.24.04.48.47;	author root;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2003.09.23.05.30.24;	author root;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.9
+log
+@listing media allows playing from web now.
+@
+text
+@<?
+// Chris Kennedy, September 2003
+// KMOS-TV
+
+// Global Configuration of DVR
+$stylesheet = "dvr.css";
+
+$PORTS = 3;
+
+// Main Path
+$DVRPATH = "/opt/dvr";
+
+// Modules
+$DECODER = $DVRPATH . "/bin/decoder";
+$ENCODER = $DVRPATH . "/bin/encoder";
+$DVRCMD = $DVRPATH . "/bin/dvrcmd";
+
+// Startup Mode
+$MODE = "manual";
+
+// File Extension Used
+$EXTENSION = "mpg";
+
+// Set Storage Directory
+$STORAGE = "/u1/Scratch";
+
+// Set Log Files
+$ERRORLOG = $DVRPATH . "/log/error";
+$MSGLOG = $DVRPATH . "/log/messages";
+$ENCODELOG = $DVRPATH . "/log/encode";
+$DECODELOG = $DVRPATH . "/log/decode";
+$ARCHIVELOG = $DVRPATH . "/log/archives";
+
+// Schedules
+$LIBRARY = $DVRPATH . "/db/library";
+$ENCODETODAY = $DVRPATH . "/schedule/encode_today";
+$DECODETODAY = $DVRPATH . "/schedule/decode_today";
+
+// Lock Files
+$ENCODELOCK = $DVRPATH . "/lock/encode/";
+$DECODELOCK = $DVRPATH . "/lock/decode/";
+$ENCMANUALMODE = $DVRPATH . "/lock/enc_manual";
+$DECMANUALMODE = $DVRPATH . "/lock/dec_manual";
+
+// Encoder
+$encoder = $DVRPATH . "/sbin/avviewrec";
+
+// Init load Modules
+$init_dvr = $DVRPATH . "/sbin/dvrboot";
+
+// MPLAYER PID
+$MPLAYERPID = $DVRPATH . "/lock/decode/mplayer.pid";
+
+// Decoder
+$decoder = "/usr/bin/mplayer";
+$decoder_args = " -display $DISPLAY -quiet -aspect 4:3 -fs";
+
+// MISC
+$NULL = "";
+
+$param_list=array(
+'enc',
+'dec',
+'clips',
+'cliptake',
+'clipstop',
+'title',
+'minutes',
+'port',
+'myport',
+'encstop',
+'date',
+'minutes',
+'duration'
+);
+
+$video_lan_path = "\\Bcs-dvr\public\apps\vlc-0.6.2\vlc.exe http://153.91.87.102/video/Scratch/";
+
+/* this will work whether it was GET or POST, doesn't make a difference */
+foreach($param_list as $param)
+   @@$$param=${"_$_SERVER[REQUEST_METHOD]"}[$param];
+
+
+?>
+@
+
+
+1.8
+log
+@lsAdded ability to ad ^?d to the recording schedule
+@
+text
+@d77 2
+@
+
+
+1.7
+log
+@anndded ability to stop encoder
+@
+text
+@d71 4
+a74 1
+'encstop'
+@
+
+
+1.6
+log
+@added new port variables
+@
+text
+@d70 2
+a71 1
+'myport'
+@
+
+
+1.5
+log
+@Ability to have mulitiple ports added and made to mosltly work.
+@
+text
+@d69 2
+a70 1
+'port'
+@
+
+
+1.4
+log
+@Added stylesheet, major rework of all pages look.
+@
+text
+@d8 2
+d68 2
+a69 1
+'minutes'
+@
+
+
+1.3
+log
+@added index link and ability to record through the web
+@
+text
+@d6 1
+@
+
+
+1.2
+log
+@added register globals fix
+@
+text
+@d63 3
+a65 1
+'clipstop'
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d58 12
+@

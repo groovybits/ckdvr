@@ -1,0 +1,123 @@
+head	1.3;
+access;
+symbols;
+locks
+	root:1.3; strict;
+comment	@# @;
+
+
+1.3
+date	2003.09.24.07.51.20;	author root;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2003.09.24.07.06.12;	author root;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2003.09.23.05.30.24;	author root;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.3
+log
+@added index link and ability to record through the web
+@
+text
+@<HTML>
+<HEAD><TITLE>KMOS-TV Linux DVR</TITLE>
+</HEAD>
+<BODY>
+<PRE>
+<table border=1 cellpadding=1 cellspacing=1><tr><th bgcolor=grey>
+KMOS-TV Digital Video Recorder/Player
+</th></tr>
+<tr><td align=center>
+
+<table border=1 cellpadding=1 cellspacing=1><th>
+<a href="decoder.php">Play</a>
+</th><th>
+<a href="encoder.php">Record</a>
+</th></table>
+
+</td></tr>
+<tr><td align=center>
+
+<table border=1 cellpadding=1 cellspacing=1><th>
+<a href="status.php">Current Recording/Playing</a>
+</th><th>
+<a href="recordings.php">View Storage Contents</a>
+</th></table>
+
+</td></tr>
+<tr><td align=center>
+
+<table border=1 cellpadding=1 cellspacing=1><th>
+<a href="mode.php">Switch Auto/Manual Mode</a>
+</th><th>
+<a href="playschedule.php">View Play Schedule</a>
+</th><th>
+<a href="recordschedule.php">View Record Schedule</a>
+</th></table>
+
+</td></tr>
+<tr><td align=center>
+
+<table border=1 cellpadding=1 cellspacing=1><th>
+<a href="/video/">Web Access to Media</a>
+</th></table>
+
+</td></tr>
+<tr><td bgcolor=grey align=center>
+CMSU Broadcasting Services Department Warrensburg Missouri
+</td></tr>
+</table>
+</PRE>
+</BODY>
+</HTML>
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d6 1
+d8 2
+d11 5
+a15 3
+Functions:
+<a href="status.php">Current Status</a>
+<a href="recordings.php">View Recordings</a>
+d17 2
+a18 2
+<a href="playfile.php">Main Interface</a>
+<a href="mode.php">Auto/Manual Mode</a>
+d20 5
+a24 2
+<a href="playschedule.php">Play Schedule</a>
+<a href="recordschedule.php">Record Schedule</a>
+d26 15
+d42 1
+d44 2
+d47 2
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d6 1
+a6 1
+KMOS-TV Digital Video Recorder/Player by Chris Kennedy
+@

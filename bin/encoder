@@ -1,0 +1,94 @@
+#!/usr/bin/perl
+
+# Chris Kennedy, September 2003
+# KMOS-TV
+#
+# ENCODER
+
+require '/opt/dvr/etc/global.cfg';
+
+$ENCODEPORT = 0;
+$EXTENSION = "mpg";
+
+for($i=0;$ARGV[$i] ne '';$i++) {
+  if($ARGV[$i] =~ /^-p/) {
+    $ENCODEPORT = $ARGV[$i+1];
+    $i++;
+  } elsif($ARGV[$i] =~ /^-k/) {
+    $kill = 1;
+  } elsif($ARGV[$i] =~ /^-e/) {
+    $EXTENSION = $ARGV[$i+1];
+    $EXTENSION = "." . $EXTENSION;
+    $i++;
+  } elsif($title_time == 1) {
+    $rec_title .= "$ARGV[$i] ";
+  } elsif($ARGV[$i] =~ /^\d+$/) {
+    $rec_minutes = $ARGV[$i];
+    $title_time = 1;
+  }
+}
+if($ARGV[0] eq '' || $ARGV[1] eq '') {
+  print "Usage: $0 [-p [0-4]] seconds title\n";
+  exit 0;
+}
+
+# Setup Encoder Settings
+$ENCODER_PID = $DVRPATH . "/lock/en_lock." . $ENCODEPORT;
+
+# Get PID of Splicer
+open(SFILE, "$ENCODER_PID");
+$control_pid = <SFILE>;
+close(SFILE);
+
+$encoder = "/opt/dvr/sbin/encoder_" . $ENCODEPORT;
+$rec_title =~ s/\n+//g;
+
+#$rec_seconds = $rec_minutes * 60;
+$rec_seconds = $rec_minutes;
+$TIMESTAMP = &time_stamp;
+
+$library_entry = "$TIMESTAMP.$EXTENSION:$rec_seconds:$rec_title";
+$encoder_args = "$rec_seconds $STORAGE/$TIMESTAMP.$EXTENSION";
+
+if($kill == 1) {
+  open(LOCK,"$ENCODELOCK/$ENCODEPORT");
+  kill HUP, $control_pid;
+  print "Took Port $ENCODEPORT to NULL\n";
+  exit(0);
+}
+
+# Lockfile
+if( -f "$ENCODELOCK/$ENCODEPORT") {
+  print "Locked\n";
+  exit 0;
+} else {
+  open(LOCK,">$ENCODELOCK/$ENCODEPORT");
+  close(LOCK);
+  open(LOCK,">$ENCODELOCK/$ENCODEPORT");
+  print LOCK "$$:$TIMESTAMP:$encoder_args:$rec_title\n";
+  close(LOCK);
+  open(LOG,">>$ENCODELOG");
+  print LOG "start: $TIMESTAMP:$ENCODEPORT:$rec_title:$encoder_args:$global_args\n";
+  close(LOG);
+}
+
+# Entry to Media Library
+open(LIBRARY,">>$LIBRARY");
+print LIBRARY "$library_entry\n";
+close(LIBRARY);
+
+# Run Player
+print "Running: $encoder $global_args $encoder_args $NULL\n";
+system("$encoder $global_args $encoder_args $NULL");
+
+# Log Play
+open(LOG,">>$ENCODELOG");
+print LOG "stop: $TIMESTAMP:$ENCODEPORT\n";
+close(LOG);
+
+# Print Out File Info
+print "Encoded: $library_entry\n";
+
+# Lockfile
+unlink("$ENCODELOCK/$ENCODEPORT");
+

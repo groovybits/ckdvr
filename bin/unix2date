@@ -1,0 +1,38 @@
+#!/usr/bin/perl
+# Get the date/time from a time stamp, Chris Kennedy (C) 2001 I-Land
+($tstamp) = @ARGV;
+
+printf("%s\n", &date($tstamp));
+
+sub date($)
+{
+  (@time) = localtime($_[0]);
+  @Months = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
+            'Oct', 'Nov', 'Dec');
+  @Days = ('Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun');
+  @TZ = ('CST','CDT');
+
+  $day = $Days[$time[6]];
+  $month = $Months[$time[4]];
+  $mday= $time[3];
+  $hour = $time[2];
+  $min = $time[1];
+  $sec = $time[0];
+  $tz = $TZ[$time[8]];
+  $year = 1900 + $time[5];
+  #$date = "$day $month $mday $hour:$min:$sec $tz $year";
+  if($hour < 10) {
+    $hour = "0" . $hour;
+  }
+  if($min < 10) {
+    $min = "0" . $min;
+  }
+  if($sec < 10) {
+    $sec = "0" . $sec;
+  }
+  $date = "$hour:$min:$sec";
+  $date = "$day $month $mday $year $hour:$min:$sec";
+
+  return $date;
+}
+

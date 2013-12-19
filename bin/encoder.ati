@@ -1,0 +1,68 @@
+#!/usr/bin/perl
+
+# Chris Kennedy, September 2003
+# KMOS-TV
+#
+# ENCODER
+
+require '/opt/dvr/etc/global.cfg';
+require '/opt/dvr/etc/encoding.ati';
+
+$ENCODEPORT = 2;
+
+if($ARGV[0] eq '' || $ARGV[1] eq '') {
+  print "Usage: $0 minutes title\n";
+  exit 0;
+}
+
+$rec_minutes = $ARGV[0];
+for($i = 1; $ARGV[$i] ne '';$i++) {
+  $rec_title .= "$ARGV[$i] ";
+}
+$rec_title =~ s/\n+//g;
+
+$encoder_args = "m $rec_minutes fsp $STORAGE ";
+
+for(;$ARGV[$i] ne '';$i++) {
+  $encoder_args .= "$ARGV[$i] ";
+}
+if($i == 0) {
+  system("$encoder h");
+  exit 0;
+}
+
+$TIMESTAMP = &time_stamp;
+$library_entry = "$TIMESTAMP.$EXTENSION:$rec_minutes:$rec_title";
+$encoder_args .= "f $TIMESTAMP.$EXTENSION ";
+
+$global_args = "in $in vq $vq vm $vm fmt $fmt vc $vc ac $ac vr \"$vr\" asr $asr abr $abr vbr $vbr bc \"$bc\"";
+
+# Lockfile
+if( -f "$ENCODELOCK/$ENCODEPORT") {
+  print "Locked\n";
+  exit 0;
+} else {
+  open(LOCK,">$ENCODELOCK/$ENCODEPORT");
+  close(LOCK);
+  open(LOCK,">$ENCODELOCK/$ENCODEPORT");
+  print LOCK "$$:$TIMESTAMP:$encoder_args:$rec_title\n";
+  close(LOCK);
+  open(LOG,">>$ENCODELOG");
+  print LOG "start: $TIMESTAMP:$ENCODEPORT:$rec_title:$encoder_args:$global_args\n";
+  close(LOG);
+}
+
+# Run Player
+print "Running: $encoder $encoder_args $global_args\n";
+system("$encoder $encoder_args $global_args $NULL");
+
+open(LIBRARY,">>$LIBRARY");
+print LIBRARY "$library_entry\n";
+close(LIBRARY);
+
+# Lockfile
+unlink("$ENCODELOCK/$ENCODEPORT");
+open(LOG,">>$ENCODELOG");
+print LOG "stop: $TIMESTAMP:$ENCODEPORT\n";
+close(LOG);
+

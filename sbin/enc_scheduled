@@ -1,0 +1,59 @@
+#!/usr/bin/perl
+
+# Chris Kennedy, September 2003
+# KMOS-TV
+
+$port = 0;
+require '/opt/dvr/etc/global.cfg';
+
+for($i = 0;$ARGV[$i] ne '';$i++) {
+  # -h (for usage help)
+  if($ARGV[$i] =~ /^-p/) {
+    $port  = $ARGV[$i+1];
+    $i++;
+  } elsif ($ARGV[$i] =~ /\-h/) {
+    print "Program: Encoding Schedule Daemon\n";
+    print "Usage: $0 \n";
+    exit(0);
+  }
+}
+
+while(1) {
+  sleep 1;
+
+  if( -f "$ENCMANUALMODE.$port" || -f "$S_ENC_L.$port") {
+    next;
+  }
+
+  # Encode Today List
+  $breakout = 0;
+  open(ENCODE, "$ENCODETODAY.$port");
+  while($breakout == 0) {
+    $line = <ENCODE>;
+    if($line eq '') {
+      $breakout = 1;
+      next;
+    }
+    
+    $TIMESTAMP = &time_stamp;
+
+    # Get line from schedule
+    ($start_time, $end_time, $length, @title) 
+	= split(/:/, $line);  
+
+    $title_l = '';
+    foreach $word (@title) {
+      $title_l .= "$word ";
+    }
+    chomp($title_l);
+
+    if($start_time <= $TIMESTAMP && $end_time > $TIMESTAMP) {
+      print "encoding: $port $title_l: ";
+      print "$length Minutes starting at $start_time to $end_time\n";
+      system("$ENCODER -p $port $length \"$title_l\"");
+    }
+  }
+  close(ENCODE);
+
+}
+

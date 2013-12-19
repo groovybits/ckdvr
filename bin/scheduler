@@ -1,0 +1,263 @@
+#!/usr/bin/perl
+
+# Chris Kennedy, September 2003
+# KMOS TV
+
+$port = 0;
+require '/opt/dvr/etc/global.cfg';
+
+for($i = 0;$ARGV[$i];$i++) {
+  # -les (list encoding schedule)
+  if ($ARGV[$i] =~ /\-lse/) {
+    &list_enc_sched;
+  }
+  # -lsd (list decoding schedule)
+  if ($ARGV[$i] =~ /\-lsd/) {
+    &list_dec_sched;
+  }
+  # -lt (list text media)
+  if ($ARGV[$i] =~ /\-lt/) {
+    &list_media_txt;
+  }
+  # -l (list media)
+  if ($ARGV[$i] =~ /\-l/) {
+    &list_media;
+  }
+  # -de (delete encoding from schedule)
+  if ($ARGV[$i] =~ /\-de/) {
+    &del_enc_sched;
+  }
+  # -dd (delete decoding from schedule)
+  if ($ARGV[$i] =~ /\-dd/) {
+    &del_dec_sched;
+  }
+  # -ae (add encoding to schedule)
+  if ($ARGV[$i] =~ /\-ae/) {
+    $entry = $ARGV[$i+1]; 
+    $i++; 
+    while($ARGV[$i++] ne '') {
+      $entry .= " $ARGV[$i]";
+    }
+    ($start,$end,$length,$title) = split(/:/, $entry);
+    chomp($title_f);
+    &add_enc_sched($start,$end,$length,"$title");
+  }
+  # -ad (add decoding to schedule)
+  if ($ARGV[$i] =~ /\-ad/) {
+    $entry = $ARGV[$i+1]; 
+    $i++; 
+    while($ARGV[$i++] ne '') {
+      $entry .= " $ARGV[$i]";
+    }
+    ($start,$end,$length,$file,$title) = split(/:/, $entry);
+    chomp($title_f);
+    &add_dec_sched($start,$end,$length,$file,"$title");
+  }
+  if ($ARGV[$i] =~ /\-p/) {
+    $port = $ARGV[$i+1];
+    $i++;
+  }
+  # -h (for usage help)
+  if ($ARGV[$i] =~ /\-h/) {
+    print "Program: Schedule Tool\n";
+    print "Usage: $0 \n";
+    print "\t-p port: Port to use\n";
+    print "\t-lse: List Encoding Schedule\n";
+    print "\t-lsd: List Decoding Schedule\n";
+    print "\t-lt: List All Media (text output)\n";
+    print "\t-l: List All Media (web output)\n";
+    print "\t-f: File Name to add\n";
+    print "\t-st: Start Time YYYYMMDD HH:MM:SS\n";
+    print "\t-et: Stop Time YYYYMMDD HH:MM:SS\n";
+    print "\t-de: Delete entry from Encoding Schedule\n";
+    print "\t-dd: Delete entry from Decoding Schedule\n";
+    print "\t-ae start:end:length:title: Add entry to Encoding Schedule\n";
+    print "\t-ad start:end:length:file:title: Add entry to Decoding Schedule\n";
+    exit(0);
+  }
+}
+exit 0;
+
+sub list_media
+{
+  $i = 0;
+
+  print "<table border=1 cellpadding=1 cellspacing=1>\n";
+  open(LIB, "$LIBRARY");
+  while($line = <LIB>) {
+    $line =~ s/\s+$//g;
+    $line =~ s/^\s+//g;
+    if($line !~ /^$/ && $line !~ /^\#/ && $line !~ /^1;$/) {
+      $i++;
+      ($file, $length, $title) = split(/:/, $line);
+      ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+                      $atime,$mtime,$ctime,$blksize,$blocks)
+                          = stat("$STORAGE/$file");
+      $kbytes = $size / 1024;
+      $mbytes = $kbytes / 1024;
+
+      $url_file = "<a href=\"$web_vpath/$file\">$file</a>";
+      $nice_sec = "$length sec";
+      print "<tr><td>\n";
+      printf("%d) </td><td>&nbsp; %s &nbsp;</td><td> %7s</td><td> %s </td><td> %d(Kb)\n",
+        $i, $url_file, $nice_sec, $title, $kbytes);
+      print "</td></tr>\n";
+    }
+  }
+  close(LIB);
+  print "</table>\n";
+  return;
+}
+
+sub list_media_txt
+{
+  $i = 0;
+  open(LIB, "$LIBRARY");
+  while($line = <LIB>) {
+    $line =~ s/\s+$//g;
+    $line =~ s/^\s+//g;
+    if($line !~ /^$/ && $line !~ /^\#/ && $line !~ /^1;$/) {
+      $i++;
+      ($file, $length, $title) = split(/:/, $line);
+      ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+                      $atime,$mtime,$ctime,$blksize,$blocks)
+                          = stat("$STORAGE/$file");
+      $kbytes = $size / 1024;
+      $mbytes = $kbytes / 1024;
+
+      printf("%-4d %15s %4dsec %-30s %d(kB)\n",
+        $i, $file, $length, $title, $kbytes);
+    }
+  }
+  close(LIB);
+  return;
+}
+
+sub list_enc_sched
+{
+  $i = 0;
+  if(! -f "$ENCODETODAY.$port") {
+    exit(0);
+  }
+  open(ES, "$ENCODETODAY.$port");
+  while($line = <ES>) {
+    $line =~ s/\s+$//g;
+    $line =~ s/^\s+//g;
+    if($line !~ /^$/ && $line !~ /^\#/ && $line !~ /^1;$/) {
+      $i++;
+      ($start, $end, $length, $title) = split(/:/, $line);
+
+      $start_time = `$U2DCMD $start`;
+      $end_time = `$U2DCMD $end`;
+      chomp($start_time);
+      chomp($end_time);
+
+      printf("%-3d (%-8s - %-8s) %2dsec %-20s\n",
+        $i, $start_time, $end_time, $length, $title);
+    }
+  }
+  close(ES);
+  exit(0);
+}
+
+sub list_dec_sched
+{
+  $i = 0;
+  if(! -f "$DECODETODAY.$port") {
+    exit(0);
+  }
+  open(ES, "$DECODETODAY.$port");
+  while($line = <ES>) {
+    $line =~ s/\s+$//g;
+    $line =~ s/^\s+//g;
+    if($line !~ /^$/ && $line !~ /^\#/ && $line !~ /^1;$/) {
+      $i++;
+      ($start, $end, $length, $file, $title) = split(/:/, $line);
+      ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+                      $atime,$mtime,$ctime,$blksize,$blocks)
+                          = stat("$STORAGE/$file");
+      $kbytes = $size / 1024;
+      $mbytes = $kbytes / 1024;
+
+      $start_time = `$U2DCMD $start`;
+      $end_time = `$U2DCMD $end`;
+      chomp($start_time);
+      chomp($end_time);
+
+      printf("%-3d (%-8s - %-8s) %-15s %2dsec %-20s %-d kB \n",
+        $i, $start_time, $end_time, $file, $length, $title, $kbytes);
+    }
+  }
+  close(ES);
+  exit(0);
+}
+
+sub add_dec_sched
+{
+  $start=$_[0];
+  $end=$_[1];
+  $length=$_[2];
+  $file=$_[3];
+  $title=$_[4];
+
+  &dec_lock; 
+  open(ES, ">>$DECODETODAY.$port");
+  print ES "$start:$end:$length:$file:$title\n";
+  close(ES);
+  &dec_unlock; 
+
+  exit(0);
+}
+
+sub add_enc_sched
+{
+  $start=$_[0];
+  $end=$_[1];
+  $length=$_[2];
+  $title=$_[3];
+
+  &enc_lock; 
+  open(ES, ">>$ENCODETODAY.$port");
+  print ES "$start:$end:$length:$title\n";
+  close(ES);
+  &enc_unlock; 
+
+  exit(0);
+}
+
+sub dec_lock
+{
+  if(-f "$S_DEC_L.$port") {
+    print "Decoding Port $port Schedule Locked\n";
+    return 1;
+  } else {
+    open(LOCK, ">$S_DEC_L.$port");
+    close(LOCK);
+  }
+  return 0;
+}
+
+sub enc_lock
+{
+  if(-f "$S_ENC_L.$port") {
+    print "Encoding Port $port Schedule Locked\n";
+    return 1;
+  } else {
+    open(LOCK, ">$S_ENC_L.$port");
+    close(LOCK);
+  }
+  return 0;
+}
+
+sub dec_unlock
+{
+  unlink("$S_DEC_L.$port");
+  return;
+}
+
+sub enc_unlock
+{
+  unlink("$S_ENC_L.$port");
+  return;
+}
+

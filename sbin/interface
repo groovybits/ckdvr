@@ -1,0 +1,802 @@
+#!/usr/bin/perl
+# 
+# AV Program Server
+# Chris Kennedy 2003 August
+
+use Socket;
+require '/opt/dvr/etc/global.cfg';
+$port = 8000;
+
+$debug = 0;
+
+## MAIN PROGRAM BODY
+&main;
+exit 0;
+
+## SUBROUTINES
+####################################################################
+##  07/14/97            Main Procedure               GS           ##
+####################################################################
+sub main
+{
+  ($name, $aliases, $protocol) = getprotobyname('tcp');
+  
+  select(NS);
+  $| = 1;
+  select(STDOUT);
+  
+  socket(S,AF_INET,SOCK_STREAM,$proto) || die "socket : $!";
+  $sockaddr = 'S n a4 x8';
+  $this = pack($sockaddr, AF_INET, $port, "\0\0\0\0");
+  bind(S, $this) || die "bind : $!";
+  listen(S,10) || die "listen: $!";
+  select(S); $| = 1; select(STDOUT);
+  
+  # Create connections as clients "arrive".  $con maintains the connection
+  # number of the last client
+  
+  for ($con = 1; ; $con++) {
+    if ($debug == 1) {
+      printf("Waiting for connection %d....\n", $con);
+    }
+    if ($addr = accept(NS,S)) {
+      if ($child = fork == 0) {
+        waitpid($child, 0);
+      } else {
+        if (fork) {
+          exit;
+        } else {
+          require '/opt/dvr/etc/global.cfg';
+          ($af,$port, $inetaddr) = unpack($sockaddr, $addr);
+          @inetaddr = unpack('C4', $inetaddr);
+          if ($debug == 1) {
+            print "Serving connection $con @ Internet address @inetaddr\n";
+          }
+          print NS "?\n\r";
+          $Conver=0; $Quit=0; $Action="";
+          while (<NS>) {
+            if ($debug == 1) {
+              print "Received from client $con: $Conver $_";
+            }
+            if ( $_=~/^quit/i ) {
+              $quit = 1;
+            } elsif ( $_=~/^exit/i ) {
+              $quit = 1;
+            } elsif ( $_=~/^pl/i ) {
+              # PlayList
+	      `echo "$$" >/tmp/play.pid`;
+              print NS &play_list(@ARGV);
+            } elsif ( $_=~/^se/i ) {
+              # StopEncoding
+              ($tmp, $port) = split(/ /, "$_");
+              chomp($port);
+	      if( -f "$ENCMANUALMODE.$port") {
+                system("$ENCODER -p $port -k");
+                print NS "$output\n\r";
+              } else {
+                print NS "NOT IN MANUAL MODE!!!\n\r";
+              }
+            } elsif ( $_=~/^sf/i ) {
+              ($tmp, $port) = split(/ /, "$_");
+              chomp($port);
+              # StopFile
+	      if( -f "$DECMANUALMODE.$port") {
+                system("$DECODER -p $port -k");
+                print NS "$output\n\r";
+              } else {
+                print NS "NOT IN MANUAL MODE!!!\n\r";
+              }
+            } elsif ( $_=~/^pf/i ) {
+              # PlayFile
+              ($tmp, $pfile, $port) = split(/ /, "$_");
+              chomp($pfile);
+              if($port ne '') {
+                chomp($port);
+              } else {
+                $port = 0;
+              } 
+              if("$pfile" ne '') {
+                print NS &play_file("$pfile","$port");
+                print NS "Playing $pfile $port\n\r";
+              } else {
+                print NS "Error, no input file\n\r";
+              }
+            } elsif ( $_=~/^e /i ) {
+              # EncodeFile
+              ($tmp, $rectime, $port, @title) = split(/ /, "$_");
+              foreach $word (@title) {
+                $rec_title .= "$word ";
+              }
+              if($rectime ne '' && $rec_title ne '') {
+                print NS &encode($rectime, $port, $rec_title);
+                print NS "Finished Encoding $port $rec_title\n\r";
+              } else {
+                print NS "Error, no minutes or title\n\r";
+              }
+            } elsif ( $_=~/^sse/i ) {
+              # Show Encoding Status
+              ($tmp, $port) = split(/ /, "$_");
+              chomp($port);
+              print NS &show_enc_status("$port");
+            } elsif ( $_=~/^ssd/i ) {
+              # Show Decoding Status
+              ($tmp, $port) = split(/ /, "$_");
+              chomp($port);
+              print NS &show_dec_status("$port");
+            } elsif ( $_=~/^ss/i ) {
+              # Show Status
+              print NS &show_status();
+            } elsif ( $_=~/^rs/i ) {
+              # List Record Schedule
+              ($tmp, $port) = split(/ /, "$_");
+              chomp($port);
+              print NS &list_rs($port);
+            } elsif ( $_=~/^ps/i ) {
+              # List Play Schedule
+              ($tmp, $port) = split(/ /, "$_");
+              chomp($port);
+              print NS &list_ps($port);
+            } elsif ( $_=~/^ars/i ) {
+              # Add Record Schedule
+              #start:length:title
+              ($tmp, $port, $start, $length, @title) = split(/ /, "$_");
+              foreach $word (@title) {
+                $title_f .= "$word ";
+              }
+              chomp($title_f);
+              print NS &add_rs($port,$start, $length, "$title_f");
+            } elsif ( $_=~/^aps/i ) {
+              # Add Play Schedule
+              #start:length:file:title
+              ($tmp, $port, $start, $length, $file, @title) = 
+		split(/ /, "$_");
+              foreach $word (@title) {
+                $title_f .= "$word ";
+              }
+              chomp($title_f);
+              print NS &add_ps($port,$start, $length, $file, "$title_f");
+            } elsif ( $_=~/^l/i ) {
+              # List Media
+              print NS &list_media();
+            } elsif ( $_=~/^auto enc/i ) {
+              # Encoding Automation Mode
+              ($tmp, $tmp, $port) = split(/ /, "$_");
+              chomp($port);
+              print NS &auto_mode_enc($port);
+            } elsif ( $_=~/^auto dec/i ) {
+              # Decoding Automation Mode
+              ($tmp, $tmp, $port) = split(/ /, "$_");
+              chomp($port);
+              print NS &auto_mode_dec($port);
+            } elsif ( $_=~/^manual enc/i ) {
+              # Encoding Manual Mode
+              ($tmp, $tmp, $port) = split(/ /, "$_");
+              chomp($port);
+              print NS &manual_mode_enc($port);
+            } elsif ( $_=~/^manual dec/i ) {
+              # Decoding Manual Mode
+              ($tmp, $tmp, $port) = split(/ /, "$_");
+              chomp($port);
+              print NS &manual_mode_dec($port);
+            } elsif ( $_=~/^a/i ) {
+              if($audio == 1) {
+                $audio = 0;
+              } else {
+                $audio = 1;
+              }
+            } elsif ( $_=~/^v/i ) {
+              if($video == 1) {
+                $video = 0;
+              } else {
+                $video = 1;
+              }
+            } elsif ( $_=~/^r/i ) {
+              if($random == 1) {
+                $random = 0;
+              } else {
+                $random = 1;
+              }
+            } elsif ( $_=~/^c/i ) {
+              $now_playing = `tail -1 /tmp/playlist`;
+              print NS "$now_playing\r";
+            } elsif ( $_=~/^n/i ) {
+              system("killall mplayer");
+            } elsif ( $_=~/^s/i ) {
+              system("killall mplayer");
+            } elsif ( $_=~/^\?/i ) {
+              print NS "Usage: pl|pf|e|n|s|q|r|a|v|c\n\r";
+              print NS "\n\r";
+              print NS "e  seconds port \"name\" - encode\n\r";
+              print NS "se                  - stop encoding file\n\r";
+              print NS "pf file port        - decode file\n\r";
+              print NS "sf                  - stop decoding file\n\r";
+              print NS "pl                  - play list jukebox\n\r";
+              print NS "ss                  - Show Status\n\r";
+              print NS "sse port            - Show Encoding Status\n\r";
+              print NS "ssd port            - Show Decoding Status\n\r";
+              print NS "\n\r";
+              print NS "Playfile Commands:\n\r";
+              print NS "l                   - list media available\n\r";
+              print NS "rs                  - list Record Schedule\n\r";
+              print NS "ps                  - list Play Schedule\n\r";
+              print NS "ars port start length title - list Record Schedule\n\r";
+              print NS "aps port start length file title - list Play Schedule\n\r";
+              print NS "manual [decode|encode] [port] - Set Manual Mode\n\r";
+              print NS "auto [decode|encdode] [port] - Set Automation Mode\n\r";
+              print NS "\n\r";
+              print NS "Encoding Commands:\n\r";
+              print NS "\n\r";
+              print NS "Playlist Commands:\n\r";
+              print NS "n - next\n\r";
+              print NS "s - stop\n\r";
+              print NS "q - quit\n\r";
+              print NS "r - random toggle\n\r";
+              print NS "v - video toggle\n\r";
+              print NS "a - audio toggle\n\r";
+              print NS "c - current playing\n\r";
+              print NS "-\n\r";
+            } else {
+              #print NS "-- Undetermined Input Error --\n\r";
+            }
+            print NS "EOF\n\r";
+            if($quit == 1) {
+              close NS;
+              exit;
+            }
+          }
+          # Close the socket connection when the client goes away
+          close(NS);
+          if ($debug == 1) {
+            print "Client went away.  Forked server $con exiting...\n";
+          }
+          exit;
+        }
+      }
+    } else {
+      warn "accept: $!";
+    }
+  }
+} 
+# End of main()
+####################################################################
+
+sub sleeplock
+{
+  $SleepCount=0;
+  while ($SleepCount <= 30 && -e "$Lockfile") {
+    sleep(5);
+    $SleepCount=$SleepCount+5;
+  }
+  if ($SleepCount > 30) {
+    return;
+  }
+  open (LOCK, ">$LockFile");
+  close (LOCK);
+}
+sub encryption
+{
+  $Password = $_[0];
+  @saltchars = (a .. z, A .. Z, 0 .. 9);
+  srand(time || $$);
+  $salt = $saltchars[rand($#saltchars)] . $saltchars[rand($#saltchars)];
+  $Encryption = crypt($Password, $salt);
+  return "$Encryption";
+}
+sub localTime
+{
+  @lmnths = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
+  ($lsec,$lmin,$lhour,$lmday,$mon,$year,$wday,$yday,$isdst) =
+       localtime(time);
+  $lmday = "0$lmday" if ($lmday < 10);
+  $lmin = "0$lmin" if ($lmin < 10);
+  $lsec = "0$lsec" if ($lsec < 10);
+  $year = $year + 1900;
+  $tzdate = "$lmday $lmnths[$mon] $year $lhour:$lmin:$lsec -0600";
+}
+
+sub encode
+{
+  $rec_time = $_[0];
+  $rec_port = $_[1];
+  $rec_title = $_[2];
+
+  $encoder_args = "-p $rec_port $rec_time $rec_title";
+  
+  print "Recording ($rec_time) $rec_port $rec_title";
+  `$ENCODER $encoder_args $NULL`;
+}
+
+## Encoding Status
+sub show_enc_status
+{
+  $port = $_[0];
+  if( -f "$ENCODELOCK$port") {
+    open(PORT, "$ENCODELOCK$port");
+    $line = <PORT>; 
+    close(PORT); 
+    chomp($line);
+    ($pid, $tstamp, $cmdline, @words) = split(/:/, $line);
+    my $title;
+    foreach $word (@words) {
+      $title .= "$word "; 
+    }
+    printf(NS "Encoding: Port (%d) Program %s\n\r", $port, $title);
+  }
+  return;
+}
+  
+## Decoding Status
+sub show_dec_status
+{
+  $port = $_[0];
+  if( -f "$DECODELOCK$port") {
+    # Decoding
+    open(PORT, "$DECODELOCK$port");
+    $line = <PORT>; 
+    close(PORT); 
+    chomp($line);
+    ($pid, $tstamp, $filename, $length, @words) = split(/:/, $line);
+    my $title;
+    foreach $word (@words) {
+      $title .= "$word "; 
+    }
+    printf(NS "Decoding: Port (%d) File %s (%dsec) Program %s\n\r", 
+  	$port, $filename, $length, $title);
+  }
+  return;
+}
+
+sub show_status
+{
+  # Encoding
+  opendir(ENCDIR, "$ENCODELOCK");
+  @encports = grep {/^\d+$/} readdir(ENCDIR);
+  closedir(ENCDIR);
+  foreach $port (@encports) {
+    open(PORT, "$ENCODELOCK/$port");
+    $line = <PORT>; 
+    close(PORT); 
+    chomp($line);
+    ($pid, $tstamp, $cmdline, @words) = split(/:/, $line);
+    my $title;
+    foreach $word (@words) {
+      $title .= "$word "; 
+    }
+    printf(NS "Encoding: Port (%d) Program %s\n\r", $port, $title);
+  }
+  
+  # Decoding
+  opendir(DECDIR, "$DECODELOCK");
+  @decports = grep {/^\d+$/} readdir(DECDIR);
+  closedir(DECDIR);
+  foreach $port (@decports) {
+    open(PORT, "$DECODELOCK/$port");
+    $line = <PORT>; 
+    close(PORT); 
+    chomp($line);
+    ($pid, $tstamp, $filename, $length, @words) = split(/:/, $line);
+    my $title;
+    foreach $word (@words) {
+      $title .= "$word "; 
+    }
+    printf(NS "Decoding: Port (%d) File %s (%dsec) Program %s\n\r", 
+  	$port, $filename, $length, $title);
+  }
+  return;
+}
+
+sub auto_mode_enc
+{
+  $port = $_[0];
+  if( -f "$ENCMANUALMODE.$port") {
+    unlink("$ENCMANUALMODE.$port");
+  }
+  print NS "Now in Automation Mode for Encoding Port $port\n\r";
+  return;
+}
+
+sub auto_mode_dec
+{
+  $port = $_[0];
+  if( -f "$DECMANUALMODE.$port") {
+    unlink("$DECMANUALMODE.$port");
+  }
+  print NS "Now in Automation Mode for Decoding Port $port\n\r";
+  return;
+}
+
+sub manual_mode_enc
+{
+  $port = $_[0];
+  $TIMESTAMP = &time_stamp;
+  open(MODE, ">$ENCMANUALMODE.$port");
+  print MODE "$TIMESTAMP\n";
+  close(MODE);
+  print NS "Now in Manual Mode for Encoding Port $port\n\r";
+  return;
+}
+
+sub manual_mode_dec
+{
+  $port = $_[0];
+  $TIMESTAMP = &time_stamp;
+  open(MODE, ">$DECMANUALMODE.$port");
+  print MODE "$TIMESTAMP\n";
+  close(MODE);
+  print NS "Now in Manual Mode for Decoding Port $port\n\r";
+  return;
+}
+
+sub list_rs
+{
+  $port = $_[0];
+  @output = `$SCHEDULER -p $port -lse`;
+  print NS "<strong><font size=5>Record Schedule $port</font></strong>";
+  print NS "<hr solid>\n\r";
+  foreach $line (@output) {
+    $line =~ s/\n+//g;
+    print NS "$line\r";
+  }
+  print NS "\n\r\n\r";
+  return;
+}
+
+sub list_ps
+{
+  $port = $_[0];
+  @output = `$SCHEDULER -p $port -lsd`;
+  print NS "<strong><font size=5>Play Schedule $port</font></strong>";
+  print NS "<hr solid>\n\r";
+  foreach $line (@output) {
+    $line =~ s/\n+//g;
+    print NS "$line\r";
+  }
+  print NS "\n\r\n\r";
+  return;
+}
+
+sub add_rs
+{
+  $port = $_[0];
+  $start = $_[1];
+  $length = $_[2];
+  $title = $_[3];
+
+  $end = $start + $length;
+
+  @output = `$SCHEDULER -p $port -ae $start:$end:$length:$title`;
+  print NS "<hr solid>Added $port $start:$end:$length:$title<PRE>\n\r";
+  foreach $line (@output) {
+    $line =~ s/\n+//g;
+    print NS "$line\r";
+  }
+  print NS "</PRE>\n\r\n\r";
+  return;
+}
+
+sub add_ps
+{
+  $port = $_[0];
+  $start = $_[1];
+  $length = $_[2];
+  $file = $_[3];
+  $title = $_[4];
+
+  $end = $start + $length;
+
+  @output = `$SCHEDULER -p $port -ad $start:$end:$length:$file:$title`;
+  print NS "<hr solid>Added $port $start:$end:$length:$file:$title<PRE>\n\r";
+  foreach $line (@output) {
+    $line =~ s/\n+//g;
+    print NS "$line\r";
+  }
+  print NS "</PRE>\n\r\n\r";
+  return;
+}
+
+sub list_media
+{
+  @output = `$SCHEDULER -l`;
+  print NS "\n\r";
+  foreach $line (@output) {
+    $line =~ s/\n+//g;
+    if($line !~ /^\s/) {
+      print NS "$line\r";
+    }
+  }
+  print NS "\n\r\n\r";
+  return;
+}
+
+sub play_file
+{
+  $file = $_[0];
+  $port = $_[1];
+
+  sub pipe_to_fork ($) {
+    my $parent = shift;
+    pipe my $child, $parent or die;
+    my $mplayer_pid = fork();
+    die "fork() failed: $!" unless defined $mplayer_pid;
+    if ($mplayer_pid) {
+      close $child;
+    } else {
+      close $parent;
+      open(STDIN, "<&=" . fileno($child)) or die;
+    }
+    $mplayer_pid;
+  }
+
+  if (pipe_to_fork('FOO')) {
+    # parent
+    close FOO;
+  } else {
+    # child
+    print "Playing $port $file\n";
+
+    open(RUNDEC, "|$DECODER -p $port $file");
+    close STDIN;
+    exit(0);
+  }
+  return;
+}
+
+sub play_list
+{
+  #
+  # Image file rotator, Chris Kennedy (C) 2000, 2001, 2003
+  #
+  
+  my $audio_search = "-iname \*.mp3 -or -iname \*.mp2 -or -iname \*.wav -or -iname \*.wma";
+  my $video_search = " -iname \*.mpg -or -iname \*.avi -or -iname \*.mpeg -or -iname \*.asf -or -iname \*wmv -or -iname \*.asx";
+  
+  my $directories = "$STORAGE";
+  my $args = $decoder_args;
+ 
+  $CLEAR = 0;
+  for($i = 0;$ARGV[$i] ne '';$i++) {
+    # -e args (extra args)
+    if ($ARGV[$i] =~ /^\-e/) {
+      $args .= " $ARGV[++$i]";
+    }
+    # -d DISPLAY (change output display)
+    #if ($ARGV[$i] =~ /^\-d/) {
+    #}
+    # -p PATTERN (different pattern)
+    if ($ARGV[$i] =~ /^\-p/) {
+      $pattern = "$ARGV[++$i]";
+    }
+    # -n STRING (files with this STRING in them)
+    if ($ARGV[$i] =~ /^\-n/) {
+      $sname = "$ARGV[++$i]";
+    }
+    # -f DIRPATH (different directory)
+    if ($ARGV[$i] =~ /^\-f/) {
+      $adir = "$ARGV[++$i]";
+    }
+    # -w TIME (pause between files)
+    if ($ARGV[$i] =~ /^\-w/) {
+      $sleep = 1;
+      $sleepcount = "$ARGV[++$i]";
+    }
+    # -random (randomize order)
+    if ($ARGV[$i] =~ /^\-r/) {
+      $random = 1;
+      $rndarg = "-shuffle";
+    }
+    # -sort (sort)
+    if ($ARGV[$i] =~ /^\-s/) {
+      $sort = 1;
+    }
+    # -video (video)
+    if ($ARGV[$i] =~ /^\-v/) {
+      $video = 1;
+    }
+    # -audio (audio)
+    if ($ARGV[$i] =~ /^\-a/) {
+      $audio = 1;
+    }
+    # -l (large)
+    #if ($ARGV[$i] =~ /^\-l/) {
+      $highquality = 1;
+    #}
+    # -V (Verbose)
+    if ($ARGV[$i] =~ /^\-V/) {
+      $DEBUG = 1;
+    }
+    # -m (mode)
+    if ($ARGV[$i] =~ /^\-m/) {
+      $playlist = 1;
+    }
+    # -h (for usage help)
+    if ($ARGV[$i] =~ /^\-h/) {
+      $program = $0;
+      $program =~ s/\/.*\///g;
+      print "Slideshow of audio and video\n";
+      print "Usage: $program [-d X-DISPLAY] [-random] [-sort] [-p PATTERN]\n";
+      print "          [-f DIR,DIR,...] [-audio] [-video] [-large]\n";
+      print "          [-w TIME] [-Verbose] [-mode] [-e extraargs]\n";
+      print "          [-name PATTERN]\n";
+      exit(0);
+    }
+  }
+  
+   # Variables
+  my $display = 1;
+  my $console;
+  my $TERM;
+  my $program;
+  my @pics;
+  my $total;
+  
+  # Check if at console
+  $TERM = $ENV{'TERM'};
+  if ($DEBUG) { printf("Terminal Type: %s\n", $TERM) };
+  if ( $TERM eq 'linux' ) {
+    $console = 1;
+  }
+  
+  if ( $console == 1 ) {
+    $program = "$decoder -vo fbdev";
+  } else {
+    $program = "$decoder";
+  }
+  
+  if ($audio == 1) {
+    $search .= " $audio_search";
+  }
+  if ($video == 1) {
+    if ($audio ==1) {
+      $search .= " -or $video_search";
+    }
+    $search .= " $video_search";
+  }
+  
+  # Parse command line input of directories
+  if($adir =~ /^$/) {
+    $search_dirs = $directories;
+  } else {
+    $adir =~ s/,/ /g;
+    $search_dirs = $adir;
+  }
+  
+  if ($pattern =~ /^$/) { 
+    if ($search =~ /^$/) {
+      $search .= "$video_search -or $audio_search";
+    }
+    system("find $search_dirs $search >/tmp/results");
+    if ($DEBUG == 1) {
+      print "Find: find $search_dirs $search\n\n";
+    }
+    if($sname ne '') {
+      @pics = `cat /tmp/results|grep -i $sname`;
+    } else {
+      open(RESULTS,"/tmp/results");
+      while($result = <RESULTS>) {
+        if($DEBUG == 1) {
+          print "$result\n";
+        }
+        push @pics, "$result";
+      }
+      close(RESULTS);
+      unlink("/tmp/results"); 
+    }
+  } else {
+    $pattern = "-or -iname " . $pattern;
+    system("find $search_dirs $search >/tmp/results");
+    if ($DEBUG == 1) {
+      print "Find: find $search_dirs $search $pattern\n\n";
+    }
+    if($sname ne '') {
+      @pics = `cat /tmp/results|grep -i $sname`;
+    } else {
+      open(RESULTS,"/tmp/results");
+      while($result = <RESULTS>) {
+        if($DEBUG == 1) {
+          print "$result\n";
+        }
+        push @pics, "$result";
+      }
+      close(RESULTS);
+      unlink("/tmp/results"); 
+    }
+  }
+  $total = $#pics;
+  
+  if ($random == 1) {
+    foreach (@pics) {
+      chomp($_);
+      my $pfile = $_;
+      my $randdig = int(rand 9999999);
+  
+      $_ = "$randdig:$pfile";
+    }
+    @pics = sort {$a <=> $b} @pics;
+    if ($display == 1) { 
+      print "Total: [$total]\nRandomizing Order\n\n";
+      sleep 3;
+    }
+  } elsif ($random == 0) {
+    my $orderdig;
+    foreach (@pics) {
+      chomp($_);
+      my $pfile = $_;
+      $orderdig++;
+  
+      $_ = "$orderdig:$pfile";
+    }
+    if ($sort == 1) {
+      @pics = sort {$a <=> $b} @pics;
+    }
+    if ($DEBUG == 1) { print "Total: [$total]\nShowing in Order\n\n"; };
+  }
+  
+  if ($highquality == 1) {
+    if ( $console == 1 ) {
+      #$args .= "";
+    } else {
+      $args.= " -fs";
+    }
+  }
+  
+  my $randdig = 0;
+  open(TMPFILE,">/tmp/playlist");
+  
+  while ($console == 0 || $console == 1) {
+    if($pics[$randdig]) {
+      my ($vpic, $vpath) = split( /:/, $pics[$randdig]);
+  
+      # Run Image Viewer
+      print TMPFILE "$vpath\n";
+      if ($DEBUG == 1) {
+        printf("%-5s %-64s\n", $randdig, $vpath);
+      } elsif ($display == 1) {
+        $song = $vpath;
+        $song =~ s/^\/.*\///g;
+        $song =~ s/\%20/ /g;
+        if($CLEAR == 1){system("clear")};
+        printf("\n %-64s", $song);
+      }
+      if($playlist == 0) {
+        close(TMPFILE);
+        if($DEBUG == 1) {
+          print "Running: '$program $args \"$vpath\"'\n";
+        }
+        if ( -f "/tmp/stop") {
+          unlink("/tmp/stop");
+          return 0;
+        }
+        open(RUNDEC, "|$program $args \"$vpath\"");
+        open(TMPFILE,">>/tmp/playlist");
+      }
+  
+      if ( $sleep == 1 ) {
+        sleep $sleepcount;
+      }
+      $randdig++;
+    } else {
+      $randdig = 0;
+      if ($playlist == 1) {
+        $console = 5;
+      }
+    }
+  }
+  
+  close(TMPFILE);
+  
+  if($DEBUG == 1) {
+    print "Running '$program $args $rndarg -playlist /tmp/playlist'\n\n";
+  }
+  `$program $args $rndarg -fixed-vo -playlist /tmp/playlist >/tmp/mplayer.out`;
+  
+  unlink("/tmp/playlist");
+  unlink("/tmp/mplayer.out");
+  
+  
+  if ($DEBUG == 1) {
+    print "\nINPUT ARGS:\n";
+    print "Audio = $audio,Video = $video,Sort = $sort,Random = $random\n";
+    print "Adir = $adir,Pattern = $pattern,Display = $DISPLAY,Sleep = $sleepcount\n\n"; 
+  }
+}

@@ -1,0 +1,50 @@
+#!/bin/sh
+
+export PATH=$PATH:/usr/sbin:/sbin
+
+## UNLOAD ALL MODULES
+# MPEG2 ENCODER PVR-250
+rmmod ivtv >/dev/null 2>&1
+rmmod saa7115 
+rmmod msp3400 
+rmmod tuner
+# DXR3
+fuser -k /dev/em8300-0 >/dev/null 2>&1
+fuser -k /dev/em8300_mv-0 >/dev/null 2>&1
+fuser -k /dev/em8300_ma-0 >/dev/null 2>&1
+rmmod em8300 >/dev/null 2>&1
+rmmod adv717x >/dev/null 2>&1
+rmmod bt865 >/dev/null 2>&1
+rmmod i2c-algo-bit >/dev/null 2>&1
+rmmod i2c-core >/dev/null 2>&1
+# Pinnacle dc10plus
+rmmod zoran >/dev/null >/dev/null 2>&1
+# ATI
+rmmod radeon >/dev/null >/dev/null 2>&1
+rmmod km_drv >/dev/null >/dev/null 2>&1
+rmmod km_api_drv >/dev/null >/dev/null 2>&1
+# AGP
+rmmod agpgart >/dev/null 2>&1
+
+## LOAD ALL MODULES
+# AGP
+modprobe agpgart
+
+# ATI
+modprobe radeon 
+#modprobe km_drv
+#modprobe km_api_drv
+
+# Pinnacle dc10plus
+#/opt/dvr/sbin/dc10boot dc10plus
+
+# DXR3
+modprobe i2c-algo-bit >/dev/null 2>&1
+modprobe adv717x pixelport_16bit=1 pixelport_other_pal=0
+modprobe bt865
+modprobe em8300 dicom_fix=0 dicom_control=0 dicom_other_pal=0
+
+# MPEG2 ENCODER PVR-250
+modprobe ivtv debug=1 mpg_buffers=100
+
+echo "Finished initializing setup for the Linux DVR"

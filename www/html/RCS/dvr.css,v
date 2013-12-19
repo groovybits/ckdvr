@@ -1,0 +1,242 @@
+head	1.2;
+access;
+symbols;
+locks
+	root:1.2; strict;
+comment	@# @;
+
+
+1.2
+date	2003.10.12.02.22.51;	author root;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2003.10.06.05.19.47;	author root;	state Exp;
+branches;
+next	;
+
+
+desc
+@Added stylesheet, major rework of all pages look.
+@
+
+
+1.2
+log
+@cleanup internet expolorer interatction[1~, buiger finonets
+@
+text
+@    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13pt;
+      background-color: #FFFFFF;
+      white-space: nowrap;
+    }
+    HR   {
+      border-style: solid;
+      border: 1px solid #000000;
+    }
+    .listing {
+      border-style: outset; 
+      border: 1px outset #c0c0c0;
+      font-size: 13pt;
+      font-family: Arial, Helvetica, sans-serif;
+      //border-collapse: collapse;
+      padding: 0px;
+      background-color: #ffffff;
+    }
+    .listrow {
+      border-style: inset;
+      border: 1px inset #c0c0c0;
+      font-size: 13pt;
+      font-family: Arial, Helvetica, sans-serif;
+      //border-collapse: collapse;
+      padding: 0px;
+    }
+    .srvrow {
+      border-style: outset;
+      border: 1px outset #c0c0c0;
+      font-size: 13pt;
+      font-family: Arial, Helvetica, sans-serif;
+      //border-collapse: collapse;
+      padding: 0px;
+    }
+    .button {
+      border-style: outset;
+      border: 1px outset #c0c0c0;
+      font-size: 13pt;
+      font-family: Arial, Helvetica, sans-serif;
+      //border-collapse: collapse;
+      padding: 1px;
+      background-color: #c0c0c0;
+    }
+    .menu {
+      border-style: outset;
+      border: 1px outset #c0c0c0;
+      font-size: 10pt;
+      font-family: Arial, Helvetica, sans-serif;
+      border-collapse: collapse;
+      padding: 0px;
+      background-color: #c0c0c0;
+    }
+    TH {
+      border-style: none;
+      border: 1px none #c0c0c0;
+      font-size: 15pt;
+      font-family: Arial, Helvetica, sans-serif;
+      border-collapse: collapse;
+      padding: 0px;
+    }
+    TD {
+      border-style: none;
+      border: 1px none #c0c0c0;
+      font-size: 15pt;
+      font-family: Arial, Helvetica, sans-serif; 
+      padding: 0px;
+      border-collapse: collapse;
+    }
+    .frame {
+      border-style: outset;
+      border: 2px outset #c0c0c0;
+      font-size: 13pt;
+      font-family: Arial, Helvetica, sans-serif;
+      border-collapse: collapse;
+      padding: 0px;
+    }
+    .m   {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13pt;
+      background-color: #FFFFFF;
+      border-width: 0px;
+      border-style: none;
+      padding: 0px;
+      white-space: nowrap;
+      border-spacing: 0px;
+    }
+    .h   {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #FFFFFF;
+      border-width: 0px;
+      border-style: none;
+      padding: 0px;
+      border-spacing: 0px;
+    }
+    .i   {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #FFFFFF;
+      border: 0px none;
+      padding: 0px;
+      border-spacing: 0px;
+    }
+    form   {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13pt;
+    }
+    h1   {
+      font-family: Verdana, Arial, Helvetica, sans-serif;
+      font-size: 15pt; font-weight: bold;
+    }
+    A:link    {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13pt; text-decoration: none;
+      white-space: nowrap;
+      color: #0020ff;
+    }
+    A:link    {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13pt; text-decoration: none;
+      white-space: nowrap;
+      color: #0020ff;
+    }
+    A:visited {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13pt; text-decoration: none;
+      color: #0020ff;
+    }
+    A:hover   {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13pt;
+      text-decoration: underline;
+      color: #000000;
+    }
+    A:link.nav {
+      font-family: Verdana, Arial, Helvetica, sans-serif;
+      color: #000000;
+    }
+    A:visited.nav {
+      font-family: Verdana, Arial, Helvetica, sans-serif;
+      color: #000000;
+    }
+    A:hover.nav {
+      font-family: Verdana, Arial, Helvetica, sans-serif;
+      color: #000000;
+    }
+    .nav {
+      font-family: Verdana, Arial, Helvetica, sans-serif;
+      color: #000000;
+    }
+    TR   {
+      font-family: Arial, Helvetica, sans-serif;
+      border: 0px;
+      padding: 0px;
+      border-collapse: collapse; 
+      border-spacing: 0px;
+    }
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d3 1
+a3 1
+      font-size: 10pt;
+d14 1
+a14 1
+      font-size: 10pt;
+d23 1
+a23 1
+      font-size: 10pt;
+d31 1
+a31 1
+      font-size: 10pt;
+d39 1
+a39 1
+      font-size: 10pt;
+d48 1
+a48 1
+      font-size: 8pt;
+d57 1
+a57 1
+      font-size: 8pt;
+d65 1
+a65 1
+      font-size: 12pt;
+d73 1
+a73 1
+      font-size: 10pt;
+d80 1
+a80 1
+      font-size: 10pt;
+d105 1
+a105 1
+      font-size: 10pt;
+d109 1
+a109 1
+      font-size: 12pt; font-weight: bold;
+d113 1
+a113 1
+      font-size: 10pt; text-decoration: none;
+d119 1
+a119 1
+      font-size: 10pt; text-decoration: none;
+d125 1
+a125 1
+      font-size: 10pt; text-decoration: none;
+d130 1
+a130 1
+      font-size: 10pt;
+@

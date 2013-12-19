@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+# Chris Kennedy
+# September 2003
+# KMOS-TV
+
+($file) = @ARGV;
+
+if ($file eq '') {
+  print "Usage: $0 file\n";
+  exit 0;
+}
+
+$newfile = $file;
+$newfile =~ s/\.avi$/.mpg/g;
+
+$cmd = "/usr/bin/lav2mpeg -a 128 -b 15000 -e 2 -S -q2 -m mpeg2 -Y -l $file";
+
+print "$cmd\n";
+system("$cmd");
+

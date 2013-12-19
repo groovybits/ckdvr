@@ -1,0 +1,97 @@
+head	1.2;
+access;
+symbols;
+locks
+	root:1.2; strict;
+comment	@# @;
+
+
+1.2
+date	2003.10.12.21.52.46;	author root;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2003.10.12.21.37.16;	author root;	state Exp;
+branches;
+next	;
+
+
+desc
+@top menu bar for pages
+@
+
+
+1.2
+log
+@added new topbar for easy navigation
+@
+text
+@
+<table border=1 cellpadding=0 cellspacing=2 bgcolor=lightgrey><tr>
+<td align=left bgcolor=lightgrey>
+
+<table border=0 cellpadding=0 cellspacing=0><th >
+
+<table border=1 cellpadding=1 cellspacing=1><th >
+&nbsp;<a href="decoder.php?port=<?echo $port?>">Play</a>&nbsp;
+</th></table>
+
+</th><th >
+
+<table border=1 cellpadding=1 cellspacing=1><th >
+&nbsp;<a href="encoder.php?port=<?echo $port?>">Record</a>&nbsp;
+</th></table>
+
+</th><th>
+
+<table border=1 cellpadding=1 cellspacing=1><th >
+&nbsp;<a href="mode.php?port=<?echo $port?>">Mode</a>&nbsp;
+</th></table>
+
+</th><th>
+
+<table border=1 cellpadding=1 cellspacing=1><th >
+&nbsp;<a href="recordings.php?port=<?echo $port?>">Library</a>&nbsp;
+</th></table>
+
+</th><th>
+
+<table border=1 cellpadding=1 cellspacing=1><th >
+&nbsp;<a href="playschedule.php?port=<?echo $port?>">Play Schedule</a>&nbsp; 
+</th></table>
+
+</th><th >
+
+<table border=1 cellpadding=1 cellspacing=1><th >
+&nbsp;<a href="recordschedule.php?port=<?echo $port?>">Record Schedule</a>&nbsp;
+</th></table>
+
+</th><th>
+
+
+</th></table>
+
+</tr><tr><td align=left bgcolor=#EEEE99>
+ <PRE><font color=black size=2><?passthru("$DVRCMD ss");?></font></PRE>
+</td></tr>
+</table>
+
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d2 1
+a2 1
+<table border=1 cellpadding=0 cellspacing=2 bgcolor=lightgrey>
+d41 2
+a42 1
+</th><th >
+d46 3
+a48 1
+</td>
+@

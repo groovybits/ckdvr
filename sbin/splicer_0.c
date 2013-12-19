@@ -1,0 +1,427 @@
+/*
+  SPlicer playing video without breaks inbetween, 
+  perfectly smooth transitions.
+
+  Chris Kennedy, October 2003
+*/
+
+#include <unistd.h>
+#include <features.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <sys/ioctl.h>
+#include <sys/time.h>
+#include <math.h>
+#include <signal.h>
+#include <time.h>
+
+void play_now(int);
+void play_queue(int);
+void cleanup(int);
+int file_tstamp(char *);
+int build_playlist(int);
+
+
+#define DEVICE 0
+#define VIDEO_DEV "/opt/dvr/lock/dec_fifo.0"
+#define BLOCK "/opt/dvr/lock/bb_lock.0"
+#define BLOCKLINK "/opt/dvr/lock/bb_lock_l.0"
+#define PLAYLIST "/opt/dvr/lock/playlist.0"
+
+#define SHOW_LINE_COUNT 0
+#define VERBOSE 1
+#define MAX_INPUT_LINE 65535
+#define MAX_EVENTS 256
+#define MAX_LINE 256
+
+char *lock_link = NULL;
+char *playlist[MAX_EVENTS];
+unsigned char mpgend[]={0x00,0x00,0x01,0xb7}; 
+
+int load_mpeg = 0;
+int queue_mpeg = 0;
+int fdout = -1;
+
+int main(int argc, char *argv[])
+{
+  int line_count = 0;
+  int fdin = -1;
+  int strsize, i, j;
+  int seconds = 0;
+  unsigned char *line = NULL;
+  char *events[MAX_EVENTS];
+  int event_count = 0;
+  FILE *lck = NULL;
+  pid_t pid;
+  time_t now;
+
+  /* get current UNIX time and PID */
+  time(&now);
+  pid = getpid();
+
+  lock_link = malloc(25+7);
+  if(lock_link == NULL)
+    exit(1);
+  snprintf(lock_link, 25+7,"%s.%d", BLOCKLINK, pid);
+
+  signal(SIGPIPE,cleanup);
+  signal(SIGHUP,play_now);
+  signal(SIGUSR1,play_queue);
+  signal(SIGINT,cleanup);
+
+  /*******************/
+  /* Check Arguments */
+  /*******************/
+  if(argc > 1) {
+    for(i = 1; argv[i] && (i <= argc); i++) {
+      if((strncmp(argv[i], "-", 1) == 0
+         && (strlen(argv[i]) == 1))) {
+        exit(1);
+      } else if((strncmp(argv[i], "-", 1) == 0) && (argv[i][1] == '\0'))
+        continue;
+      else if(strncmp(argv[i], "/", 1) == 0) {
+        j = 0;
+        while (i < MAX_EVENTS && argv[i] && (i <= argc) && 
+	 strncmp(argv[i], "/", 1) == 0) {
+          event_count++;
+          if(VERBOSE)
+            printf("%3d: Adding %s\n", event_count, argv[i]);
+          strsize = strlen(argv[i]);
+          events[j] = malloc(strsize + 1);
+          events[j+1] = '\0'; 
+          if(events[j] == NULL)
+            continue;
+          strncpy(events[j], argv[i], strsize + 1);
+          j++; i++;
+        }
+        continue;
+      } else {
+        /* Play Time */
+        for(j = 0; argv[i][j] != '\0'; j++) {
+          if(isdigit(argv[i][j]) == 0) {
+            /* Bad Argument Given */
+            fprintf(stderr, "program: ERROR: bad option! %s\n", argv[i]);
+            fprintf(stderr, "Usage: program [seconds] [mpegfile]\n");
+            exit(1);
+          }
+        }
+        seconds = (int) atoi(argv[i]);
+        if(VERBOSE)
+          printf("Length: %d Seconds\n", seconds);
+      }
+    }
+  } else {
+    fprintf(stderr, "Usage: program [seconds] [mpegfile]\n");
+    exit(1);
+  }
+
+  /* Time the Recording */
+  alarm(seconds);
+
+
+  /* Build Fifo */
+  mkfifo(VIDEO_DEV,0666);
+
+  /* Allocate input line */
+  line = malloc(MAX_INPUT_LINE + 1);
+  if(line == NULL)
+    exit(1);
+
+  /* Lock Video Output */
+  lck = fopen(lock_link, "w");
+  if(lck == NULL)
+    return 1;
+
+  fprintf(lck, "%d", pid);
+
+  if(link(lock_link, BLOCK) != 0) {
+    fclose(lck);
+    unlink(lock_link);
+    return 1;
+  } else
+    fclose(lck);
+
+  /* Open Mpeg Output to fifo */
+  if ( (fdout = open(VIDEO_DEV, O_TRUNC|O_WRONLY) ) < 0 ) {
+    fprintf(stderr, "Failed to open %s: %s\n", 
+	VIDEO_DEV, strerror(errno));
+    exit(1);
+  }
+
+  while(1) {
+    if(load_mpeg == 1) {
+      int ret = 0;
+      load_mpeg = 0;
+
+      ret = build_playlist(0);
+ 
+      /* Write Video Output from playlist */
+      line_count = 0;
+      for(i=0; ret == 0 && playlist[i] != NULL;i++) {
+        if(VERBOSE)
+          printf("Loading: %-2d %s\n", i, playlist[i]);
+        /* Open Video Input */
+        if ( (fdin = open(playlist[i], O_RDONLY) ) < 0 ) {
+          fprintf(stderr, "Failed to open '%s': %s\n", 
+		playlist[i], strerror(errno));
+          unlink(lock_link);
+          unlink(BLOCK);
+          break;
+        }
+        /* Read from Video Input while Writing to Output */
+        while(read(fdin, line, MAX_INPUT_LINE) > 0) {
+          /* Break out of loop when signal to play file is caught */
+          /* Splice MPEG-2 Stream */
+          if(load_mpeg == 1) {
+            int x, eofpos, fpos;
+            int found = 0;
+
+            x = 0;
+            eofpos=-1;
+            while(found == 0) {
+              char *test = NULL;
+              for (fpos=0; fpos<MAX_INPUT_LINE-1; fpos++) {
+                if ((line[fpos]==0) &&
+                    (line[fpos+1]==0) &&
+                    (line[fpos+2]==1))
+                  {
+                    if (line[fpos+3]==0) { // Picture
+                      printf("Picture\n");
+                      x++;
+                    }
+                    if (line[fpos+3]==0xb7) { //End of sequence.
+                      printf("End Of Sequence\n");
+                      eofpos=fpos+2;
+                      //line[fpos+2]=0;
+                      //line[fpos+3]=0;
+                      found = 1;
+                      break;
+                    }
+                    if (line[fpos+3]==0xb8) { // GOP
+          	      printf("GOP\n");
+                      found = 1;
+                      x = x+2;
+                      break;
+                    }
+                  }
+              }
+              line_count++;
+
+              if(found == 1) {
+                test = malloc(x+1);
+                if(test == NULL)
+                  exit(1);
+         
+                snprintf(test, x, "%s", line);
+                line[x+1] = '\0';
+                write(fdout, test, x);
+                write(fdout, mpgend, 4);
+              } else {
+                write(fdout, line, MAX_INPUT_LINE);
+              }
+              free(test);
+        
+              if(found == 1 || read(fdin, line, MAX_INPUT_LINE) <= 0)
+                break;
+            }
+
+            break;
+          }
+          line_count++;
+
+          write(fdout, line, MAX_INPUT_LINE);
+
+          if(SHOW_LINE_COUNT)
+            printf("%d\n", line_count);
+        }
+        write(fdout, mpgend, 4);
+        /* Close Input File */
+        close(fdin);
+
+        /* Break out of loop when signal to play file is caught */
+        if(load_mpeg == 1) {
+          break;
+        } else if(queue_mpeg == 1) {
+          queue_mpeg = 0;
+          load_mpeg = 1;
+          break;
+        } 
+      }
+    } else {
+      /* Write Video Output from command line */
+      line_count = 0;
+      for(i=0; events[i] != NULL;i++) {
+        if(VERBOSE)
+          printf("Running: %d %s\n", i, events[i]);
+        /* Open Video Input */
+        if ( (fdin = open(events[i], O_RDONLY) ) < 0 ) {
+          fprintf(stderr, "Failed to open %s: %s\n", 
+		events[i], strerror(errno));
+          cleanup(0);
+        }
+        /* Read from Video Input while Writing to Output */
+        while(read(fdin, line, MAX_INPUT_LINE) > 0) {
+          /* Break out of loop when signal to play file is caught */
+          if(load_mpeg == 1) {
+            int x, eofpos, fpos;
+            int found = 0;
+
+            x = 0;
+            eofpos=-1;
+            while(found == 0) {
+              char *test = NULL;
+              for (fpos=0; fpos<MAX_INPUT_LINE-1; fpos++) {
+                if ((line[fpos]==0) &&
+                    (line[fpos+1]==0) &&
+                    (line[fpos+2]==1))
+                  {
+                    if (line[fpos+3]==0) { // Picture
+                      printf("Picture\n");
+                      x++;
+                    }
+                    if (line[fpos+3]==0xb7) { //End of sequence.
+                      printf("End Of Sequence\n");
+                      eofpos=fpos+2;
+                      //line[fpos+2]=0;
+                      //line[fpos+3]=0;
+                      found = 1;
+                      break;
+                    }
+                    if (line[fpos+3]==0xb8) { // GOP
+          	      printf("GOP\n");
+                      found = 1;
+                      x = x+2;
+                      break;
+                    }
+                  }
+              }
+              line_count++;
+
+              if(found == 1) {
+                test = malloc(x+1);
+                if(test == NULL)
+                  exit(1);
+         
+                snprintf(test, x, "%s", line);
+                line[x+1] = '\0';
+                write(fdout, test, x);
+                write(fdout, mpgend, 4);
+              } else {
+                write(fdout, line, MAX_INPUT_LINE);
+              }
+              free(test);
+        
+              if(found == 1 || read(fdin, line, MAX_INPUT_LINE) <= 0)
+                break;
+            }
+
+            break;
+          } else if(queue_mpeg == 1) {
+            queue_mpeg = 0;
+            load_mpeg = 1;
+            break;
+          } 
+          line_count++;
+
+          write(fdout, line, MAX_INPUT_LINE);
+
+          if(SHOW_LINE_COUNT)
+            printf("%d\n", line_count);
+        }
+        write(fdout, mpgend, 4);
+        /* Close Input File */
+        close(fdin);
+
+        /* Break out of loop when signal to play file is caught */
+        if(load_mpeg == 1) {
+          break;
+        } else if(queue_mpeg == 1) {
+          queue_mpeg = 0;
+          load_mpeg = 1;
+          break;
+        }
+      }
+    }
+    if(load_mpeg == 0 && queue_mpeg == 0)
+      unlink(PLAYLIST);
+  }
+
+  cleanup(0);
+}
+
+
+void play_now(int signal)
+{
+  load_mpeg = 1;
+  return;
+}
+
+void play_queue(int signal)
+{
+  queue_mpeg = 1;
+  return;
+}
+
+int file_tstamp(char *filename)
+{
+  struct stat buf;
+
+  if(stat(filename, &buf) == 0) {
+    if(buf.st_mtime != 0)
+      return buf.st_mtime;
+  }
+  return -1;
+}
+
+void cleanup(int signal)
+{
+  close(fdout);
+  unlink(lock_link);
+  unlink(BLOCK);
+  unlink(VIDEO_DEV);
+  exit(1);
+}
+
+int build_playlist(int input)
+{
+  FILE *file;
+  char *line;
+  int strsize, j = 0;
+  int event_count = 0;
+
+  /* Open playlist */
+  file = fopen(PLAYLIST, "r");
+  if(file == NULL)
+    return 1;
+
+  /* line buffer */
+  line = (char *) malloc(MAX_LINE +1);
+  if(line == NULL)
+    return 1;
+
+  while((fgets(line, MAX_LINE +1, file)) != NULL) {
+    if(strncmp(line, "/", 1) == 0) {
+      event_count++;
+      if(VERBOSE)
+        printf(" +Adding %3d %s\n", event_count, line);
+      strsize = strlen(line);
+      playlist[j] = malloc(strsize + 1);
+      playlist[j+1] = '\0'; 
+      if(playlist[j] == NULL)
+        continue;
+      strncpy(playlist[j], line, strsize - 1);
+      j++; 
+    }
+  }
+
+  /* Close and delete playlist */
+  fclose(file);
+  return 0;
+}

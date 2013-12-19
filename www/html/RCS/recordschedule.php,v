@@ -1,0 +1,193 @@
+head	1.9;
+access;
+symbols;
+locks
+	root:1.9; strict;
+comment	@# @;
+
+
+1.9
+date	2003.10.14.03.36.50;	author root;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2003.10.12.21.52.46;	author root;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2003.10.12.08.57.28;	author root;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2003.10.12.07.04.00;	author root;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2003.10.12.06.00.07;	author root;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2003.10.06.05.19.47;	author root;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2003.10.05.10.57.10;	author root;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2003.09.24.07.51.20;	author root;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2003.09.23.05.30.24;	author root;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.9
+log
+@lsAdded ability to ad ^?d to the recording schedule
+@
+text
+@<? include 'variables.php' ?>
+<?
+?>
+<HTML>
+<HEAD><TITLE>KMOS-TV Linux DVR</TITLE>
+<? include 'stylesheet.php' ?>
+</HEAD>
+<BODY>
+
+<? include 'topbar.php' ?>
+<br>
+
+<table><tr><td>
+<form action=recordschedule.php method=post name=portc>
+<? include 'port.php' ?>
+</td><td>
+</form>
+</td></tr></table>
+
+<? include 'enc_sched.php' ?>
+
+<PRE><?  passthru("$DVRCMD rs $port"); ?></PRE>
+
+<hr solid>
+<? include 'footer.php' ?>
+</BODY>
+</HTML>
+@
+
+
+1.8
+log
+@added new topbar for easy navigation
+@
+text
+@a16 1
+<!--input type=submit value=Change name=Submit-->
+d19 3
+@
+
+
+1.7
+log
+@autoload when choices are selected now.
+@
+text
+@d9 4
+a15 1
+<font size=1><a href=/index.php?port=<?echo $port?>>Main Index</a></font>
+@
+
+
+1.6
+log
+@first step in making port stateful accross web interface
+@
+text
+@a8 1
+<font size=1><a href=/index.php?port=<?echo $port?>>Main Index</a></font>
+d10 1
+a10 1
+<form action=recordschedule.php method=post>
+d12 1
+d14 1
+a14 1
+<input type=submit value=Change name=Submit>
+@
+
+
+1.5
+log
+@Ability to have mulitiple ports added and made to mosltly work.
+@
+text
+@d9 1
+a9 1
+<font size=1><a href=/>Main Index</a></font>
+@
+
+
+1.4
+log
+@Added stylesheet, major rework of all pages look.
+@
+text
+@d2 2
+d10 8
+a17 1
+<PRE><?  passthru("$DVRCMD rs"); ?></PRE>
+@
+
+
+1.3
+log
+@rework of whole look to be uniform
+@
+text
+@d3 3
+a5 1
+<HEAD><TITLE>KMOS-TV Linux DVR</TITLE></HEAD>
+@
+
+
+1.2
+log
+@added index link and ability to record through the web
+@
+text
+@d5 2
+a6 8
+<a href=/>Back to Index</a><br>
+<PRE>
+<?
+
+passthru("$DVRCMD rs");
+
+?>
+</PRE>
+d8 2
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d5 1
+d13 1
+@

@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# NTSC
+test_ioctl -u 0x3000
+# FULL SIZE
+test_ioctl -f width=720,height=480
+# INPUT Composite
+test_ioctl -p 5
+# Dynamic Noise Reduction
+test_ioctl -c dnr_spatial=1,dnr_temporal=2
+# Audio setup
+#test_ioctl -c audio=0xc8
+test_ioctl -c audio=0xe9
+# Stream Type
+test_ioctl -c stream_type=14
+# Pulldown
+test_ioctl -c pulldown=0
+# GOP Closure
+test_ioctl -c gop_closure=0
+# Bitrate
+test_ioctl -c bitrate=8000000
+test_ioctl -c bitrate_peak=16000000
+# Variable/Constant Bitrate
+test_ioctl -c bitrate_mode=0
+# Aspect
+test_ioctl -c aspect=2
+# B Frames
+test_ioctl -c bframes=3
+# GOP Frames
+test_ioctl -c framespergop=15
+
+

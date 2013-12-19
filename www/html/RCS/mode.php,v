@@ -1,0 +1,358 @@
+head	1.11;
+access;
+symbols;
+locks
+	root:1.11; strict;
+comment	@# @;
+
+
+1.11
+date	2003.10.12.21.52.46;	author root;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2003.10.12.08.57.28;	author root;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2003.10.12.08.46.59;	author root;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2003.10.12.08.43.30;	author root;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2003.10.12.06.00.07;	author root;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2003.10.06.05.19.47;	author root;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2003.10.05.10.57.10;	author root;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2003.10.05.09.40.46;	author root;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2003.09.24.07.51.20;	author root;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2003.09.24.07.06.12;	author root;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2003.09.23.05.30.24;	author root;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.11
+log
+@added new topbar for easy navigation
+@
+text
+@<? include 'variables.php' ?>
+<HTML>
+<HEAD><TITLE>KMOS-TV Linux DVR</TITLE>
+<? include 'stylesheet.php' ?>
+</HEAD>
+<BODY>
+
+<? include 'topbar.php' ?>
+<br>
+
+<?
+
+if($enc == "man") {
+  passthru("$DVRCMD manual enc $port >/dev/null");
+} else if($enc == "auto") {
+  passthru("$DVRCMD auto enc $port >/dev/null");
+}
+if($dec == "man") {
+  passthru("$DVRCMD manual dec $port >/dev/null");
+} else if($dec == "auto") {
+  passthru("$DVRCMD auto dec $port >/dev/null");
+}
+
+if( file_exists("$ENCMANUALMODE.$port")) {
+  $enc_man = 'checked';
+} else {
+  $enc_auto = 'checked';
+}
+if( file_exists("$DECMANUALMODE.$port")) {
+  $dec_man = 'checked';
+} else {
+  $dec_auto = 'checked';
+}
+
+?>
+
+<table border=1 cellpadding=2 cellspacing=1>
+<tr><th bgcolor=navy nowrap colspan=3 align=left>
+<font color=white>Schedule Mode Port <?echo $port?></font>
+</th></tr>
+
+<tr><td align=left valign=top colspan=3 bgcolor=lightgrey>
+<form action=mode.php method=post name=porta>
+<table border=0><tr><td>
+<table border=0><tr><td>
+<strong>Recording </strong>
+</tr></td><tr><td>
+<input type=radio name=enc value="man" <?echo $enc_man?> onClick="javascript:document.porta.submit()">
+manual
+</tr></td><tr><td>
+<input type=radio name=enc value="auto" <?echo $enc_auto?> onClick="javascript:document.porta.submit()">
+auto
+</tr></td>
+</table></td><td>
+<table border=0><tr><td>
+<strong>Playback </strong>
+</tr></td><tr><td>
+<input type=radio name=dec value="man" <?echo $dec_man?> onClick="javascript:document.porta.submit()">
+manual
+</tr></td><tr><td>
+<input type=radio name=dec value="auto" <?echo $dec_auto?> onClick="javascript:document.porta.submit()">
+auto
+</td></tr>
+</table>
+</tr></td><tr><td colspan=3 align=left>
+<input type=hidden name=port value=<?echo $port?>>
+<!--input type=submit name=submit value="Set Mode"-->
+</form>
+<form action=mode.php name=portc>
+</tr></td><tr><td colspan=3 align=left>
+<? include 'port.php' ?>
+<!--input type=submit name=submit value="Switch DVR"-->
+</td></tr></table>
+</td></tr></table>
+</form>
+<br>
+
+<? include 'footer.php' ?>
+</BODY>
+</HTML>
+@
+
+
+1.10
+log
+@autoload when choices are selected now.
+@
+text
+@d7 4
+d46 1
+a46 1
+<strong>Encoding </strong>
+d56 1
+a56 1
+<strong>Decoding </strong>
+@
+
+
+1.9
+log
+@portst mode
+@
+text
+@d39 1
+a39 1
+<form action=mode.php method=post name=portc>
+d44 1
+a44 1
+<input type=radio name=enc value="man" <?echo $enc_man?> onClick="javascript:document.portc.submit()">
+d47 1
+a47 1
+<input type=radio name=enc value="auto" <?echo $enc_auto?> onClick="javascript:document.portc.submit()">
+d54 1
+a54 1
+<input type=radio name=dec value="man" <?echo $dec_man?> onClick="javascript:document.portc.submit()">
+d57 1
+a57 1
+<input type=radio name=dec value="auto" <?echo $dec_auto?> onClick="javascript:document.portc.submit()">
+d63 1
+a63 1
+<input type=submit name=submit value="Set Mode">
+d68 1
+a68 1
+<input type=submit name=submit value="Switch DVR">
+@
+
+
+1.8
+log
+@Ability to control modes of weach player/recorder pbetter
+@
+text
+@d39 1
+a39 1
+<form action=mode.php name=portc>
+@
+
+
+1.7
+log
+@Ability to have mulitiple ports added and made to mosltly work.
+@
+text
+@d39 1
+a39 1
+<form action=mode.php>
+d44 1
+a44 1
+<input type=radio name=enc value="man" <?echo $enc_man?>>
+d47 1
+a47 1
+<input type=radio name=enc value="auto" <?echo $enc_auto?>>
+d54 1
+a54 1
+<input type=radio name=dec value="man" <?echo $dec_man?>>
+d57 1
+a57 1
+<input type=radio name=dec value="auto" <?echo $dec_auto?>>
+d61 6
+a66 1
+</tr></td><tr><td colspan=3 align=center>
+d68 1
+a68 2
+</tr></td><tr><td colspan=3 align=center>
+<input type=submit name=submit value=Change>
+@
+
+
+1.6
+log
+@Added stylesheet, major rework of all pages look.
+@
+text
+@d10 1
+a10 1
+  passthru("$DVRCMD manual enc >/dev/null");
+d12 1
+a12 1
+  passthru("$DVRCMD auto enc >/dev/null");
+d15 1
+a15 1
+  passthru("$DVRCMD manual dec >/dev/null");
+d17 1
+a17 1
+  passthru("$DVRCMD auto dec >/dev/null");
+d20 1
+a20 1
+if( file_exists("$ENCMANUALMODE")) {
+d25 1
+a25 1
+if( file_exists("$DECMANUALMODE")) {
+d35 1
+a35 1
+<font color=white>Schedule Mode:</font>
+d62 2
+d68 1
+@
+
+
+1.5
+log
+@rework of whole look to be uniform
+@
+text
+@d3 3
+a5 1
+<HEAD><TITLE>KMOS-TV Linux DVR</TITLE></HEAD>
+d42 1
+a42 1
+<strong>Encoding: </strong>
+d52 1
+a52 1
+<strong>Decoding: </strong>
+d61 1
+a61 1
+</tr></td><tr><td colspan=3 align=right>
+@
+
+
+1.4
+log
+@interface given a better consistent look
+@
+text
+@a29 1
+<a href=/>Back to Index</a><br><br>
+d31 1
+a31 1
+<table border=1 align=left valign=top width=25% cellpadding=2 cellspacing=3>
+d36 1
+a36 1
+<tr><td align=left valign=top colspan=3 bgcolor=grey>
+d62 1
+d65 1
+@
+
+
+1.3
+log
+@added index link and ability to record through the web
+@
+text
+@d30 1
+a30 1
+<a href=/>Back to Index</a><br>
+d32 3
+a34 3
+<table align=left valign=top width=25% cellpadding=0 cellspacing=0>
+<tr><th bgcolor=grey nowrap colspan=3 align=left>
+Auto/Manual Mode for Encoding/Decoding Schedules:
+d37 1
+a37 1
+<tr><td align=left valign=top colspan=3>
+d39 2
+a40 1
+<table><tr><td>
+d48 3
+a50 1
+</tr></td><tr><td>
+a57 2
+</tr></td><tr><td>
+<input type=submit name=submit value=Change>
+d60 3
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d30 2
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d10 1
+a10 2
+  print "HELLO\n";
+  passthru("$DVRCMD auto enc ");
+@

@@ -1,0 +1,76 @@
+#!/usr/bin/perl
+
+use Socket;
+$dvrhost = "localhost";
+$dvrport = 8000;
+
+if($ARGV[0] eq '' || $ARGV[0] eq '-h') {
+  $ARGV[0] = '?';
+}
+
+&dvr_cmd(@ARGV);
+
+exit 0;
+
+# Connect To DVR PORT
+sub dvr_con()
+{
+  $iaddr = inet_aton ($dvrhost) ||
+        die "Unable to find server '$dvrhost'\n";
+
+  if ($dvrport =~ /\D/) { $dvrport = getservbyname ($dvrport, 'tcp') }
+  $paddr = sockaddr_in ($dvrport, $iaddr);
+  $proto = getprotobyname ('tcp');
+
+  socket (DVR, PF_INET, SOCK_STREAM, $proto) ||
+    die "could not create socket: $!\n";
+  connect (DVR, $paddr) ||
+    die "could not connect: $!\n";
+
+  select (DVR); $| = 1; select (STDOUT);
+}
+
+# Disconnect From DVR
+sub dvr_dis()
+{
+  do_cmd (DVR, "quit");
+  close(DVR);
+  exit;
+}
+
+# Reset DVR
+sub dvr_cmd()
+{
+  my $cmdline;
+  foreach $part (@_) {
+    $cmdline .= "$part ";
+  }
+  $cmdline =~ s/\s$//g;
+  &dvr_con;
+
+  do_cmd (DVR, "$cmdline");
+
+  &dvr_dis;
+}
+
+# Send Command To DVR PORT
+sub do_cmd {
+    my ($fd, $cmd) = @_;
+    my ($l, @out);
+
+    return ("", undef) if ($cmd =~ /^\s*$/);
+
+    @out = ();
+    print $fd "$cmd\n";
+    while (defined($l = <$fd>)) {
+        chomp $l;
+        if ($l =~ /^.EOF$/) {
+          return;
+        }
+        if ($l !~ /^.?$/) {
+          print "$l\n";
+        }
+    }
+}
+
+

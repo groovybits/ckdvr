@@ -1,0 +1,58 @@
+#!/usr/bin/perl
+
+# Chris Kennedy, September 2003
+# KMOS-TV
+
+$port = 0;
+require '/opt/dvr/etc/global.cfg';
+
+for($i = 0;$ARGV[$i] ne '';$i++) {
+  # -h (for usage help)
+  if($ARGV[$i] =~ /^-p/) {
+    $port = $ARGV[$i+1];
+    $i++;
+  } elsif ($ARGV[$i] =~ /\-h/) {
+    print "Program: Decoding Schedule Daemon\n";
+    print "Usage: $0 \n";
+    exit(0);
+  }
+}
+
+while(1) {
+  sleep 1;
+
+  if( -f "$DECMANUALMODE" || -f "$S_DEC_L.$port") {
+    next;
+  }
+
+  # Decode Today List
+  $breakout = 0;
+  open(DECODE, "$DECODETODAY.$port");
+  while($breakout == 0) {
+    $line = <DECODE>;
+    if($line eq '') {
+      $breakout = 1;
+      next;
+    }
+    
+    $TIMESTAMP = &time_stamp;
+
+    # Get line from Schedule
+    ($start_time, $end_time, $length, $file, @title) 
+	= split(/:/, $line);  
+
+    $title_l = '';
+    foreach $word (@title) {
+      $title_l .= "$word ";
+    }
+    chomp($title_l);
+
+    if($start_time <= $TIMESTAMP && $end_time > $TIMESTAMP) {
+      print "decoding $port $file:$title_l: ";
+      print "$length Minutes starting at $start_time to $end_time\n";
+      system("$DECODER -p $port \"$file\"");
+    }
+  }
+  close(DECODE);
+}
+
